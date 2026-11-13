@@ -61,7 +61,8 @@ interface PlayerDao {
 
     @Transaction
     suspend fun saveRoundScores(playerIds: List<Int>, pointsList: List<Int>) {
-        val timestamp = System.currentTimeMillis()
+        val latest = getLatestRoundTimestamp() ?: 0L
+        val timestamp = maxOf(System.currentTimeMillis(), latest + 1L)
         for (i in playerIds.indices) {
             val pId = playerIds[i]
             val pts = pointsList[i]
@@ -70,6 +71,20 @@ interface PlayerDao {
             updatePlayer(player.copy(totalScore = newScore))
             insertScoreEntry(ScoreEntry(playerId = pId, points = pts, timestamp = timestamp))
         }
+    }
+
+    @Transaction
+    suspend fun saveMultipleRounds(playerIds: List<Int>, roundsPoints: List<List<Int>>) {
+        var nextTimestamp = maxOf(System.currentTimeMillis(), (getLatestRoundTimestamp() ?: 0L) + 1L)
+        for (pointsList in roundsPoints) {
+            for (i in playerIds.indices) {
+                val pId = playerIds[i]
+                val pts = pointsList.getOrElse(i) { 0 }
+                insertScoreEntry(ScoreEntry(playerId = pId, points = pts, timestamp = nextTimestamp))
+            }
+            nextTimestamp++
+        }
+        recalculateAllPlayerTotalScores()
     }
 
     @Query("SELECT timestamp FROM score_entries ORDER BY timestamp DESC, id DESC LIMIT 1")

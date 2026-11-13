@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +42,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,6 +87,7 @@ val HazariGold = Color(0xFFFFD54F)
  * where users can input and manage scores for each player across multiple rounds of Hazari.
  * Rounds are stored sequentially until any player's total score reaches 1000 or above.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HazariScoringScreen(
     viewModel: ScoreboardViewModel,
@@ -91,6 +96,9 @@ fun HazariScoringScreen(
     onRoundSaved: (roundNumber: Int) -> Unit = {}
 ) {
     val context = LocalContext.current
+    var scoringMode by remember {
+        mutableStateOf(LocalStorage.getItem("hazari_scoring_mode", "multi"))
+    }
     val players by viewModel.playersFlow.collectAsState()
     val scoreEntries by viewModel.scoreEntriesFlow.collectAsState()
     val closestToWin by viewModel.closestToWinFlow.collectAsState()
@@ -158,8 +166,114 @@ fun HazariScoringScreen(
             .background(themeGradient)
             .testTag("hazari_scoring_screen")
     ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Mode Switcher: 10+ Rounds Sheet vs Single Round Entry
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SegmentedButton(
+                        selected = scoringMode == "multi",
+                        onClick = {
+                            scoringMode = "multi"
+                            LocalStorage.setItem("hazari_scoring_mode", "multi")
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = Color.White,
+                            activeContentColor = MaterialTheme.colorScheme.primary,
+                            inactiveContainerColor = Color.White.copy(alpha = 0.22f),
+                            inactiveContentColor = Color.White,
+                            activeBorderColor = Color.White,
+                            inactiveBorderColor = Color.White.copy(alpha = 0.45f)
+                        ),
+                        modifier = Modifier.testTag("mode_tab_multi_round")
+                    ) {
+                        Text(
+                            text = "10+ Rounds Sheet",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            maxLines = 1
+                        )
+                    }
+                    SegmentedButton(
+                        selected = scoringMode == "single",
+                        onClick = {
+                            scoringMode = "single"
+                            LocalStorage.setItem("hazari_scoring_mode", "single")
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = Color.White,
+                            activeContentColor = MaterialTheme.colorScheme.primary,
+                            inactiveContainerColor = Color.White.copy(alpha = 0.22f),
+                            inactiveContentColor = Color.White,
+                            activeBorderColor = Color.White,
+                            inactiveBorderColor = Color.White.copy(alpha = 0.45f)
+                        ),
+                        modifier = Modifier.testTag("mode_tab_single_round")
+                    ) {
+                        Text(
+                            text = "Single Round",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            if (scoringMode == "multi") {
+                HazariMultiRoundScreen(
+                    players = players,
+                    scoreEntries = scoreEntries,
+                    currentTheme = currentTheme,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    onSaveRound = { pointsList, onDone ->
+                        viewModel.saveRoundScores(
+                            playerIds = players.map { it.id },
+                            pointsList = pointsList
+                        ) {
+                            onDone()
+                            onRoundSaved(completedRounds.size + 1)
+                        }
+                    },
+                    onSaveAllValidRounds = { roundsPoints, onDone ->
+                        val startRound = completedRounds.size + 1
+                        viewModel.saveMultipleRounds(
+                            playerIds = players.map { it.id },
+                            roundsPoints = roundsPoints
+                        ) {
+                            onDone()
+                            onRoundSaved(startRound + roundsPoints.size - 1)
+                        }
+                    },
+                    onUpdateRound = { timestamp, pointsList, onDone ->
+                        viewModel.updateRoundScores(
+                            timestamp = timestamp,
+                            playerIds = players.map { it.id },
+                            pointsList = pointsList
+                        ) {
+                            onDone()
+                        }
+                    },
+                    onUndoLastRound = {
+                        viewModel.undoLastRound()
+                    },
+                    onDeleteRound = { timestamp, onDone ->
+                        viewModel.deleteRound(timestamp) {
+                            onDone()
+                        }
+                    }
+                )
+            } else {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 horizontal = 14.dp,
                 vertical = 12.dp
@@ -844,6 +958,8 @@ fun HazariScoringScreen(
 
             item {
                 Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
             }
         }
     }

@@ -228,6 +228,14 @@ class ScoreboardViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun saveMultipleRounds(playerIds: List<Int>, roundsPoints: List<List<Int>>, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            repository.saveMultipleRounds(playerIds, roundsPoints)
+            refreshLastAction()
+            onComplete()
+        }
+    }
+
     fun updateRoundScores(timestamp: Long, playerIds: List<Int>, pointsList: List<Int>, onComplete: () -> Unit) {
         viewModelScope.launch {
             repository.updateRoundScores(timestamp, playerIds, pointsList)
@@ -356,6 +364,8 @@ class ScoreboardViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             repository.resetGame()
             clearScoringInput()
+            com.example.util.LocalStorage.removeItem("multi_round_drafts")
+            com.example.util.LocalStorage.removeItem("multi_round_visible_count")
             refreshLastAction()
         }
     }

@@ -24,6 +24,10 @@ class ScoreboardRepository(private val playerDao: PlayerDao) {
         playerDao.saveRoundScores(playerIds, pointsList)
     }
 
+    suspend fun saveMultipleRounds(playerIds: List<Int>, roundsPoints: List<List<Int>>) {
+        playerDao.saveMultipleRounds(playerIds, roundsPoints)
+    }
+
     suspend fun updateRoundScores(timestamp: Long, playerIds: List<Int>, pointsList: List<Int>) {
         playerDao.updateRoundScores(timestamp, playerIds, pointsList)
     }

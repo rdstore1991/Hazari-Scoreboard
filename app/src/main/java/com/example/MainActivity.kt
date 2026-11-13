@@ -1336,6 +1336,8 @@ private fun clearDraftScores() {
     LocalStorage.removeItem("draft_s1")
     LocalStorage.removeItem("draft_s2")
     LocalStorage.removeItem("draft_s3")
+    LocalStorage.removeItem("multi_round_drafts")
+    LocalStorage.removeItem("multi_round_visible_count")
 }
 
 @Composable
