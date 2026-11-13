@@ -1,0 +1,8 @@
+{
+  "name": "Hazari Score for পাইট্টা মালস",
+  "description": "Hazari Scoreboard",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
